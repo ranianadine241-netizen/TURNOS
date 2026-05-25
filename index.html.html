@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masajes — Inscripción · 28 Mayo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --red-deep:   #712B13;
+    --red-strong: #993C1D;
+    --red-light:  #F0997B;
+    --red-pale:   #F5C4B3;
+    --red-ghost:  #FAECE7;
+    --red-danger: #A32D2D;
+    --text-main:  #1a1a1a;
+    --text-muted: #666;
+    --text-hint:  #aaa;
+    --bg-page:    #fdf8f7;
+    --bg-card:    #ffffff;
+    --border:     rgba(0,0,0,0.11);
+    --border-light: rgba(0,0,0,0.06);
+    --radius:     8px;
+    --radius-lg:  12px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-page); color: var(--text-main); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+  .header { background: var(--red-deep); padding: 18px 20px 15px; }
+  .header-sub { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--red-pale); margin-bottom: 3px; }
+  .header-title { font-size: 20px; font-weight: 500; color: var(--red-ghost); }
+
+  .nav { display: flex; background: #fdf0ec; border-bottom: 1px solid var(--border-light); }
+  .nav-btn { padding: 10px 18px; border: none; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; font-size: 13px; color: var(--text-muted); font-family: inherit; transition: color 0.15s, border-color 0.15s; }
+  .nav-btn.active { color: var(--red-strong); border-bottom-color: var(--red-strong); font-weight: 500; }
+
+  .main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
+
+  /* Loading */
+  .loading-bar { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--red-pale); border-top-color: var(--red-strong); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Stats */
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+  .stat-card { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; text-align: center; }
+  .stat-num { font-size: 26px; font-weight: 500; color: var(--red-deep); line-height: 1.1; }
+  .stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+  /* Period */
+  .period-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; margin-top: 6px; }
+  .period-title { font-size: 13px; font-weight: 500; color: var(--red-strong); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+  .period-sub { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .period-line { flex: 1; height: 0.5px; background: var(--border); }
+
+  /* Slot row */
+  .slot-row { display: flex; align-items: center; gap: 14px; padding: 13px 16px; background: var(--bg-card); border: 0.5px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 8px; cursor: pointer; transition: border-color 0.12s, background 0.12s; }
+  .slot-row:hover:not(.full):not(.selected) { border-color: var(--red-pale); background: #fffaf9; }
+  .slot-row.selected { border: 2px solid var(--red-strong); background: var(--red-ghost); }
+  .slot-row.full { cursor: not-allowed; opacity: 0.45; background: #faf5f3; }
+
+  .dots { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.taken { background: var(--red-light); border: 1.5px solid var(--red-light); }
+  .dot.open  { background: transparent; border: 1.5px solid var(--red-pale); }
+
+  .slot-time-block { flex: 1; }
+  .slot-time-main { font-size: 15px; font-weight: 500; color: var(--text-main); }
+  .slot-time-end  { font-size: 12px; color: var(--text-muted); }
+  .slot-row.selected .slot-time-main { color: var(--red-deep); }
+
+  .slot-badge { font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 20px; flex-shrink: 0; }
+  .badge-available { background: #f0faf5; color: #1a6b40; border: 0.5px solid #b3dfc6; }
+  .badge-one       { background: #fff8ec; color: #7a4e0a; border: 0.5px solid #f5d49a; }
+  .badge-full      { background: #f5f0ee; color: var(--text-hint); border: 0.5px solid var(--border); }
+
+  /* Name form */
+  .name-form { background: var(--bg-card); border: 1.5px solid var(--red-light); border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 16px; margin-top: 4px; }
+  .name-form-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .name-form-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+  .name-form-sub strong { color: var(--red-strong); font-weight: 500; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  label.lbl { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  input[type=text], input[type=password], select { width: 100%; padding: 9px 11px; border: 0.5px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; background: var(--bg-card); color: var(--text-main); outline: none; transition: border-color 0.15s; }
+  input:focus, select:focus { border-color: var(--red-strong); }
+  .form-error { font-size: 12px; color: var(--red-danger); margin-bottom: 10px; }
+
+  .btn { border: 0.5px solid var(--border); background: transparent; border-radius: var(--radius); padding: 9px 16px; cursor: pointer; font-size: 13px; color: var(--text-main); font-family: inherit; transition: background 0.1s; }
+  .btn:hover { background: #f5f5f5; }
+  .btn-red { background: var(--red-deep); color: var(--red-ghost); border-color: var(--red-deep); font-weight: 500; }
+  .btn-red:hover { background: var(--red-strong); }
+  .btn-full { width: 100%; padding: 11px; font-size: 14px; }
+  .btn-danger { color: var(--red-danger); border-color: var(--red-light); }
+  .btn-danger:hover { background: #fff5f5; }
+  .btn-link { background: none; border: none; color: var(--red-strong); font-size: 12px; cursor: pointer; text-decoration: underline; font-family: inherit; padding: 0; }
+
+  /* Success */
+  .confirm-box { background: var(--red-ghost); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px; }
+  .confirm-label { font-size: 11px; color: var(--red-strong); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .confirm-time { font-size: 20px; font-weight: 500; color: var(--red-deep); }
+  .confirm-sub { font-size: 13px; color: var(--red-strong); margin-top: 4px; }
+  .icon-circle { width: 38px; height: 38px; border-radius: 50%; background: var(--red-ghost); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; color: var(--red-deep); }
+  .flex-row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+
+  /* List view */
+  .list-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .list-row { display: flex; gap: 14px; padding: 12px 0; border-bottom: 0.5px solid var(--border-light); }
+  .list-turno { min-width: 90px; flex-shrink: 0; }
+  .list-turno-n { font-size: 11px; color: var(--red-strong); font-weight: 500; }
+  .list-turno-t { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .list-name { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+  .list-empty { font-size: 13px; color: var(--text-hint); font-style: italic; }
+  .list-available { font-size: 12px; color: var(--text-hint); font-style: italic; margin-top: 2px; }
+
+  /* Admin */
+  .card { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+  .admin-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .admin-slot-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+  .admin-name { font-size: 13px; font-weight: 500; }
+  .icon-btn { padding: 5px 10px; font-size: 14px; }
+  .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .edit-actions { display: flex; gap: 6px; margin-top: 8px; }
+
+  .hidden { display: none !important; }
+  .mb8 { margin-bottom: 8px; } .mb12 { margin-bottom: 12px; } .mb16 { margin-bottom: 16px; } .mb20 { margin-bottom: 20px; }
+  .mt12 { margin-top: 12px; } .mt16 { margin-top: 16px; } .mt20 { margin-top: 20px; }
+  .text-muted { color: var(--text-muted); font-size: 12px; }
+  .text-red { color: var(--red-strong); }
+  .fw500 { font-weight: 500; } .fs15 { font-size: 15px; } .fs12 { font-size: 12px; }
+  .divider { border-top: 0.5px solid var(--border-light); margin-top: 16px; padding-top: 14px; }
+  .section-title { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--red-strong); font-weight: 500; margin-bottom: 10px; border-bottom: 0.5px solid var(--border-light); padding-bottom: 6px; }
+  .footer { text-align: center; padding: 14px 16px; border-top: 0.5px solid var(--border-light); font-size: 11px; color: var(--text-hint); }
+
+  @media (max-width: 420px) {
+    .form-grid, .edit-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .stats-row .stat-card:last-child { grid-column: span 2; }
+    .nav-btn { padding: 10px 12px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <p class="header-sub">Jueves 28 de mayo, 2026</p>
+  <p class="header-title">Masajes — Inscripción de turnos</p>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" data-tab="register" onclick="switchTab('register')">Inscribirme</button>
+  <button class="nav-btn" data-tab="list" onclick="switchTab('list')">Ver inscritos</button>
+  <button class="nav-btn" data-tab="admin" onclick="switchTab('admin')">Moderadora</button>
+</div>
+
+<!-- INSCRIBIRSE -->
+<div id="tab-register" class="main">
+  <div id="step-form">
+    <div class="loading-bar" id="loading-msg">
+      <div class="spinner"></div>
+      <p>Cargando turnos...</p>
+    </div>
+    <div id="form-content" class="hidden">
+      <div class="stats-row">
+        <div class="stat-card">
+          <p class="stat-num" id="stat-registered">0</p>
+          <p class="stat-lbl">Inscritas</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-num" id="stat-available">48</p>
+          <p class="stat-lbl">Lugares libres</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-num">24</p>
+          <p class="stat-lbl">Turnos totales</p>
+        </div>
+      </div>
+
+      <div class="period-header">
+        <span class="period-title">☀ Mañana</span>
+        <span class="period-sub">9:00 am – 1:00 pm</span>
+        <span class="period-line"></span>
+      </div>
+      <div id="slots-manana"></div>
+
+      <div class="period-header mt20">
+        <span class="period-title">☾ Tarde</span>
+        <span class="period-sub">2:00 pm – 4:00 pm</span>
+        <span class="period-line"></span>
+      </div>
+      <div id="slots-tarde"></div>
+
+      <div class="name-form hidden" id="name-form">
+        <p class="name-form-title">Ya casi — ¿cuál es tu nombre?</p>
+        <p class="name-form-sub">Te inscribirás en el turno de las <strong id="selected-label-text"></strong></p>
+        <div class="form-grid">
+          <div><label class="lbl" for="inp-first">Nombre</label><input type="text" id="inp-first" placeholder="Ej: María" autocomplete="given-name"></div>
+          <div><label class="lbl" for="inp-last">Apellido</label><input type="text" id="inp-last" placeholder="Ej: García" autocomplete="family-name"></div>
+        </div>
+        <p class="form-error hidden" id="form-error"></p>
+        <button class="btn btn-red btn-full" onclick="handleRegister()">Confirmar inscripción</button>
+      </div>
+
+      <div class="divider">
+        <button class="btn-link" onclick="showCancelStep()">¿Ya te inscribiste y deseas cancelar tu turno?</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="step-success" class="hidden">
+    <div class="card" style="max-width:380px;margin:0 auto;">
+      <div class="flex-row">
+        <div class="icon-circle">✓</div>
+        <div>
+          <p class="fs15 fw500">¡Inscripción confirmada!</p>
+          <p class="text-muted" id="success-name"></p>
+        </div>
+      </div>
+      <div class="confirm-box">
+        <p class="confirm-label">Tu turno</p>
+        <p class="confirm-time" id="success-slot"></p>
+        <p class="confirm-sub" id="success-period"></p>
+      </div>
+      <button class="btn btn-full" onclick="resetForm()">Inscribir a otra persona</button>
+    </div>
+  </div>
+
+  <div id="step-cancel" class="hidden">
+    <button class="btn mb16" style="border:none;color:var(--text-muted);padding:0;font-size:12px;background:none;" onclick="showFormStep()">← Volver</button>
+    <p class="fs15 fw500 mb8">Cancelar mi inscripción</p>
+    <p class="text-muted mb16">Ingresa tu nombre y apellido tal como los registraste.</p>
+    <div class="card mb12">
+      <div class="form-grid">
+        <div><label class="lbl" for="cancel-first">Nombre</label><input type="text" id="cancel-first" placeholder="Tu nombre"></div>
+        <div><label class="lbl" for="cancel-last">Apellido</label><input type="text" id="cancel-last" placeholder="Tu apellido"></div>
+      </div>
+      <button class="btn btn-red btn-full mt12" onclick="searchCancel()">Buscar</button>
+    </div>
+    <p id="cancel-msg" class="mb12 hidden" style="font-size:13px;color:var(--text-muted);text-align:center;"></p>
+    <div id="cancel-results"></div>
+  </div>
+</div>
+
+<!-- VER INSCRITOS -->
+<div id="tab-list" class="main hidden">
+  <div class="list-header">
+    <p class="fs15 fw500">Inscritos · Jueves 28 de mayo</p>
+    <p class="text-muted" id="list-count"></p>
+  </div>
+  <p class="section-title">☀ Mañana — 9:00 am a 1:00 pm</p>
+  <div id="list-manana"></div>
+  <p class="section-title mt16">☾ Tarde — 2:00 pm a 4:00 pm</p>
+  <div id="list-tarde"></div>
+</div>
+
+<!-- MODERADORA -->
+<div id="tab-admin" class="main hidden">
+  <div id="admin-login" style="max-width:300px;margin:0 auto;">
+    <p class="fs15 fw500 mb8">Acceso moderadora</p>
+    <p class="text-muted mb16">Ingresa la contraseña para gestionar las inscripciones.</p>
+    <div class="card">
+      <label class="lbl" for="admin-pass">Contraseña</label>
+      <input type="password" id="admin-pass" placeholder="••••••••" style="margin-bottom:10px;">
+      <p class="form-error hidden" id="admin-err"></p>
+      <button class="btn btn-red btn-full" onclick="adminLogin()">Entrar</button>
+    </div>
+  </div>
+  <div id="admin-panel" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div>
+        <p class="fs15 fw500">Panel de moderadora</p>
+        <p class="text-muted" id="admin-count"></p>
+      </div>
+      <button class="btn" style="font-size:11px;" onclick="adminLogout()">Cerrar sesión</button>
+    </div>
+    <p class="section-title">Mañana</p>
+    <div id="admin-manana"></div>
+    <p class="section-title mt16">Tarde</p>
+    <div id="admin-tarde"></div>
+  </div>
+</div>
+
+<div class="footer">Masajes · Jueves 28 de mayo, 2026 · 24 turnos · 2 personas por turno</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+// ── Firebase config ───────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyA7kj5TqWdQP_FifYgJumNB2lkWpUJBEVo",
+  authDomain: "masajes-en-sillas---lenovo.firebaseapp.com",
+  databaseURL: "https://masajes-en-sillas---lenovo-default-rtdb.firebaseio.com",
+  projectId: "masajes-en-sillas---lenovo",
+  storageBucket: "masajes-en-sillas---lenovo.firebasestorage.app",
+  messagingSenderId: "737275712339",
+  appId: "1:737275712339:web:2dc2759966c49af61c07a6"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const regsRef = db.ref('registrations');
+
+// ── Constantes ────────────────────────────────────────
+const ADMIN_PASS = 'masajes28';
+const MAX = 2;
+
+function fmtTime(m) {
+  const h=Math.floor(m/60), min=m%60;
+  const p=h<12?'am':'pm';
+  const h12=h>12?h-12:(h===0?12:h);
+  return h12+':'+(min<10?'0':'')+min+' '+p;
+}
+const SLOTS=[];
+for(let i=0;i<16;i++){const s=9*60+i*15;SLOTS.push({id:i,startFmt:fmtTime(s),endFmt:fmtTime(s+15),period:'Mañana'});}
+for(let i=0;i<8;i++){const s=14*60+i*15;SLOTS.push({id:16+i,startFmt:fmtTime(s),endFmt:fmtTime(s+15),period:'Tarde'});}
+
+// ── Estado local ──────────────────────────────────────
+let regs = {};          // { firebaseKey: { slotId, firstName, lastName, ts } }
+let selectedSlotId = null;
+let editingId = null;
+let dataLoaded = false;
+
+function slotLabel(id){const s=SLOTS.find(s=>s.id===id);return s?s.startFmt+' a '+s.endFmt:'';}
+function slotCount(id){return Object.values(regs).filter(r=>r.slotId===id).length;}
+function regsArray(){return Object.entries(regs).map(([k,v])=>({...v,_key:k}));}
+function esc(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Escuchar Firebase en tiempo real ──────────────────
+regsRef.on('value', snap => {
+  regs = snap.val() || {};
+  if(!dataLoaded){
+    dataLoaded = true;
+    document.getElementById('loading-msg').classList.add('hidden');
+    document.getElementById('form-content').classList.remove('hidden');
+  }
+  renderSlots();
+  if(!document.getElementById('tab-list').classList.contains('hidden')) renderList();
+  if(!document.getElementById('admin-panel').classList.contains('hidden')) renderAdminPanel();
+});
+
+// ── Tabs ──────────────────────────────────────────────
+function switchTab(tab){
+  ['register','list','admin'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('hidden',t!==tab);
+    document.querySelector('[data-tab="'+t+'"]').classList.toggle('active',t===tab);
+  });
+  if(tab==='list') renderList();
+  if(tab==='admin') renderAdminPanel();
+}
+
+// ── Renderizar turnos ─────────────────────────────────
+function updateStats(){
+  const total=SLOTS.length*MAX;
+  const count=Object.keys(regs).length;
+  document.getElementById('stat-registered').textContent=count;
+  document.getElementById('stat-available').textContent=total-count;
+}
+
+function renderSlots(){
+  updateStats();
+  ['manana','tarde'].forEach(p=>{
+    const period=p==='manana'?'Mañana':'Tarde';
+    const cont=document.getElementById('slots-'+p);
+    if(!cont) return;
+    cont.innerHTML='';
+    SLOTS.filter(s=>s.period===period).forEach(slot=>{
+      const count=slotCount(slot.id);
+      const full=count>=MAX;
+      const sel=selectedSlotId===slot.id;
+      const avail=MAX-count;
+
+      let dotsHtml='<div class="dots">';
+      for(let i=0;i<MAX;i++) dotsHtml+='<div class="dot'+(i<count?' taken':' open')+'"></div>';
+      dotsHtml+='</div>';
+
+      let badge='';
+      if(full) badge='<span class="slot-badge badge-full">Lleno</span>';
+      else if(avail===1) badge='<span class="slot-badge badge-one">1 lugar</span>';
+      else badge='<span class="slot-badge badge-available">2 lugares</span>';
+
+      const row=document.createElement('div');
+      row.className='slot-row'+(sel?' selected':'')+(full?' full':'');
+      row.innerHTML=dotsHtml+'<div class="slot-time-block"><p class="slot-time-main">'+slot.startFmt+' <span style="font-weight:400;font-size:13px;color:var(--text-muted)">a '+slot.endFmt+'</span></p></div>'+badge;
+      if(!full) row.onclick=()=>selectSlot(slot.id);
+      cont.appendChild(row);
+    });
+  });
+}
+
+function selectSlot(id){
+  selectedSlotId=id;
+  const s=SLOTS.find(s=>s.id===id);
+  document.getElementById('selected-label-text').textContent=s.startFmt+' a '+s.endFmt;
+  document.getElementById('name-form').classList.remove('hidden');
+  document.getElementById('form-error').classList.add('hidden');
+  document.getElementById('name-form').scrollIntoView({behavior:'smooth',block:'nearest'});
+  renderSlots();
+}
+
+// ── Registrar en Firebase ─────────────────────────────
+async function handleRegister(){
+  const first=document.getElementById('inp-first').value.trim();
+  const last=document.getElementById('inp-last').value.trim();
+  const err=document.getElementById('form-error');
+  if(!first||!last){showErr(err,'Por favor ingresa tu nombre y apellido.');return;}
+  if(selectedSlotId===null){showErr(err,'Por favor selecciona un turno.');return;}
+  if(slotCount(selectedSlotId)>=MAX){showErr(err,'Este turno ya está lleno. Por favor elige otro.');selectedSlotId=null;document.getElementById('name-form').classList.add('hidden');renderSlots();return;}
+  try {
+    const newReg={slotId:selectedSlotId,firstName:first,lastName:last,ts:Date.now()};
+    await regsRef.push(newReg);
+    showSuccess({...newReg});
+  } catch(e) {
+    showErr(err,'Error al guardar. Intenta de nuevo.');
+  }
+}
+function showErr(el,msg){el.textContent=msg;el.classList.remove('hidden');}
+
+function showSuccess(reg){
+  document.getElementById('step-form').classList.add('hidden');
+  document.getElementById('step-success').classList.remove('hidden');
+  const s=SLOTS.find(s=>s.id===reg.slotId);
+  document.getElementById('success-name').textContent=reg.firstName+' '+reg.lastName;
+  document.getElementById('success-slot').textContent=s.startFmt+' a '+s.endFmt;
+  document.getElementById('success-period').textContent='Jueves 28 de mayo · '+s.period;
+}
+
+function resetForm(){
+  selectedSlotId=null;
+  document.getElementById('inp-first').value='';
+  document.getElementById('inp-last').value='';
+  document.getElementById('form-error').classList.add('hidden');
+  document.getElementById('name-form').classList.add('hidden');
+  document.getElementById('step-success').classList.add('hidden');
+  document.getElementById('step-form').classList.remove('hidden');
+}
+
+// ── Cancelar turno ────────────────────────────────────
+function showCancelStep(){
+  document.getElementById('step-form').classList.add('hidden');
+  document.getElementById('step-cancel').classList.remove('hidden');
+  document.getElementById('cancel-results').innerHTML='';
+  document.getElementById('cancel-msg').classList.add('hidden');
+}
+function showFormStep(){
+  document.getElementById('step-cancel').classList.add('hidden');
+  document.getElementById('step-form').classList.remove('hidden');
+}
+
+function searchCancel(){
+  const first=document.getElementById('cancel-first').value.trim().toLowerCase();
+  const last=document.getElementById('cancel-last').value.trim().toLowerCase();
+  const found=regsArray().filter(r=>r.firstName.toLowerCase()===first&&r.lastName.toLowerCase()===last);
+  const msg=document.getElementById('cancel-msg');
+  const res=document.getElementById('cancel-results');
+  res.innerHTML='';
+  if(found.length===0){msg.textContent='No se encontró ninguna inscripción con ese nombre.';msg.classList.remove('hidden');return;}
+  msg.classList.add('hidden');
+  found.forEach(r=>{
+    const div=document.createElement('div');
+    div.className='card mb8 admin-row';
+    div.id='cancel-row-'+r._key;
+    div.innerHTML='<div><p class="fw500">'+esc(r.firstName)+' '+esc(r.lastName)+'</p><p class="text-red fs12">'+esc(slotLabel(r.slotId))+'</p></div><button class="btn btn-danger" onclick="cancelReg(\''+r._key+'\')">Cancelar turno</button>';
+    res.appendChild(div);
+  });
+}
+
+async function cancelReg(key){
+  await regsRef.child(key).remove();
+  const row=document.getElementById('cancel-row-'+key);
+  if(row) row.remove();
+  const msg=document.getElementById('cancel-msg');
+  msg.textContent='Inscripción cancelada correctamente.';
+  msg.classList.remove('hidden');
+}
+
+// ── Ver inscritos ─────────────────────────────────────
+function renderList(){
+  const total=SLOTS.length*MAX;
+  const count=Object.keys(regs).length;
+  document.getElementById('list-count').textContent=count+' de '+total+' lugares';
+  ['manana','tarde'].forEach(p=>{
+    const period=p==='manana'?'Mañana':'Tarde';
+    const base=p==='manana'?0:16;
+    const cont=document.getElementById('list-'+p);
+    cont.innerHTML='';
+    SLOTS.filter(s=>s.period===period).forEach((slot,i)=>{
+      const people=regsArray().filter(r=>r.slotId===slot.id);
+      const n=base+i+1;
+      let namesHtml='';
+      if(people.length===0){namesHtml='<p class="list-empty">— disponible —</p>';}
+      else{
+        namesHtml=people.map(p=>'<p class="list-name">'+esc(p.firstName)+' '+esc(p.lastName)+'</p>').join('');
+        if(people.length<MAX) namesHtml+='<p class="list-available">— 1 lugar disponible —</p>';
+      }
+      cont.innerHTML+='<div class="list-row"><div class="list-turno"><p class="list-turno-n">Turno '+n+'</p><p class="list-turno-t">'+slot.startFmt+' a '+slot.endFmt+'</p></div><div class="list-people">'+namesHtml+'</div></div>';
+    });
+  });
+}
+
+// ── Admin ─────────────────────────────────────────────
+function adminLogin(){
+  const pass=document.getElementById('admin-pass').value;
+  const err=document.getElementById('admin-err');
+  if(pass===ADMIN_PASS){
+    document.getElementById('admin-login').classList.add('hidden');
+    document.getElementById('admin-panel').classList.remove('hidden');
+    renderAdminPanel();
+  }else{err.textContent='Contraseña incorrecta.';err.classList.remove('hidden');}
+}
+function adminLogout(){
+  document.getElementById('admin-panel').classList.add('hidden');
+  document.getElementById('admin-login').classList.remove('hidden');
+  document.getElementById('admin-pass').value='';
+  document.getElementById('admin-err').classList.add('hidden');
+  editingId=null;
+}
+
+function renderAdminPanel(){
+  if(document.getElementById('admin-panel').classList.contains('hidden')) return;
+  const count=Object.keys(regs).length;
+  document.getElementById('admin-count').textContent=count+' personas inscritas en total';
+  ['manana','tarde'].forEach(p=>{
+    const period=p==='manana'?'Mañana':'Tarde';
+    const base=p==='manana'?0:16;
+    const cont=document.getElementById('admin-'+p);
+    cont.innerHTML='';
+    SLOTS.filter(s=>s.period===period).forEach((slot,i)=>{
+      const people=regsArray().filter(r=>r.slotId===slot.id);
+      const n=base+i+1;
+      const block=document.createElement('div');
+      block.className='mb12';
+      let html='<p class="admin-slot-label"><span class="text-red fw500">T'+n+'</span> · '+slot.startFmt+' a '+slot.endFmt+' · '+people.length+'/'+MAX+'</p>';
+      if(people.length===0) html+='<p style="font-size:12px;color:var(--text-hint);font-style:italic;margin-bottom:4px;">Sin inscritos</p>';
+      people.forEach(p=>{
+        if(editingId===p._key){
+          const opts=SLOTS.map(s=>{
+            const isFull=s.id!==p.slotId&&slotCount(s.id)>=MAX;
+            return '<option value="'+s.id+'"'+(s.id===p.slotId?' selected':'')+(isFull?' disabled':'')+'>'+s.period+' · '+s.startFmt+' a '+s.endFmt+(isFull?' (lleno)':'')+' </option>';
+          }).join('');
+          html+='<div class="card mb8"><div class="edit-grid"><div><label class="lbl">Nombre</label><input type="text" id="edit-first" value="'+esc(p.firstName)+'"></div><div><label class="lbl">Apellido</label><input type="text" id="edit-last" value="'+esc(p.lastName)+'"></div></div><div class="mb8"><label class="lbl">Cambiar turno</label><select id="edit-slot">'+opts+'</select></div><div class="edit-actions"><button class="btn btn-red" style="font-size:12px;padding:6px 14px;" onclick="saveEdit(\''+p._key+'\')">Guardar</button><button class="btn" style="font-size:12px;padding:6px 14px;" onclick="cancelEdit()">Cancelar</button></div></div>';
+        }else{
+          html+='<div class="card mb8 admin-row"><p class="admin-name">'+esc(p.firstName)+' '+esc(p.lastName)+'</p><div style="display:flex;gap:6px;flex-shrink:0;"><button class="btn icon-btn" title="Editar" onclick="startEdit(\''+p._key+'\')">✎</button><button class="btn btn-danger icon-btn" title="Eliminar" onclick="deleteReg(\''+p._key+'\')">✕</button></div></div>';
+        }
+      });
+      block.innerHTML=html;
+      cont.appendChild(block);
+    });
+  });
+}
+
+function startEdit(key){editingId=key;renderAdminPanel();}
+function cancelEdit(){editingId=null;renderAdminPanel();}
+
+async function saveEdit(key){
+  const first=document.getElementById('edit-first').value.trim();
+  const last=document.getElementById('edit-last').value.trim();
+  const newSlot=parseInt(document.getElementById('edit-slot').value);
+  if(!first||!last){alert('Por favor ingresa nombre y apellido.');return;}
+  const target=regs[key];
+  if(newSlot!==target.slotId&&slotCount(newSlot)>=MAX){alert('Ese turno ya está lleno.');return;}
+  await regsRef.child(key).update({firstName:first,lastName:last,slotId:newSlot});
+  editingId=null;
+}
+
+async function deleteReg(key){
+  if(!confirm('¿Eliminar esta inscripción?')) return;
+  await regsRef.child(key).remove();
+}
+
+// ── Teclado ───────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('admin-pass').addEventListener('keydown',e=>{if(e.key==='Enter')adminLogin();});
+  document.getElementById('inp-last').addEventListener('keydown',e=>{if(e.key==='Enter')handleRegister();});
+  document.getElementById('cancel-last').addEventListener('keydown',e=>{if(e.key==='Enter')searchCancel();});
+});
+</script>
+</body>
+</html>
