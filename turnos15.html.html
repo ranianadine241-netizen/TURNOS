@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inscripción de Turnos</title>
+<style>
+  :root{
+    --primary:#0a3d91;
+    --primary-light:#e8f0fe;
+    --success:#2e7d32;
+    --danger:#c62828;
+    --gray:#6b7280;
+    --border:#dbe3ee;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:'Segoe UI', Arial, sans-serif;
+    background:#f4f6fb;
+    margin:0;
+    padding:24px 16px 60px;
+    color:#1f2937;
+  }
+  .container{
+    max-width:720px;
+    margin:0 auto;
+  }
+  h1{
+    font-size:22px;
+    color:var(--primary);
+    margin-bottom:4px;
+    text-align:center;
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--gray);
+    font-size:14px;
+    margin-bottom:24px;
+  }
+  #status-msg{
+    text-align:center;
+    font-size:13px;
+    color:var(--gray);
+    margin-bottom:16px;
+  }
+  .slots-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
+    gap:10px;
+  }
+  .slot-btn{
+    border:1.5px solid var(--border);
+    background:#fff;
+    border-radius:10px;
+    padding:14px 8px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    color:var(--primary);
+    transition:all .15s ease;
+    text-align:center;
+  }
+  .slot-btn:hover:not(:disabled){
+    background:var(--primary-light);
+    border-color:var(--primary);
+  }
+  .slot-btn.taken{
+    background:#f1f2f4;
+    border-color:#e5e7eb;
+    color:var(--gray);
+    cursor:not-allowed;
+    text-decoration:line-through;
+  }
+  .slot-btn.taken .taken-name{
+    display:block;
+    font-size:11px;
+    font-weight:400;
+    margin-top:2px;
+    text-decoration:none;
+  }
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(15,23,42,.45);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+    z-index:50;
+  }
+  .overlay.active{display:flex;}
+  .modal{
+    background:#fff;
+    border-radius:14px;
+    width:100%;
+    max-width:380px;
+    padding:24px;
+  }
+  .modal h2{
+    font-size:17px;
+    margin:0 0 4px;
+    color:var(--primary);
+  }
+  .modal .slot-label{
+    font-size:13px;
+    color:var(--gray);
+    margin-bottom:16px;
+  }
+  .field{
+    margin-bottom:14px;
+  }
+  .field label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  .field input{
+    width:100%;
+    padding:10px 12px;
+    border:1.5px solid var(--border);
+    border-radius:8px;
+    font-size:14px;
+  }
+  .modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+  }
+  .btn{
+    flex:1;
+    padding:11px;
+    border-radius:8px;
+    border:none;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--primary); color:#fff;}
+  .btn-secondary{background:#eef1f6; color:#374151;}
+  .field-error{color:var(--danger); font-size:12px; margin-top:4px; display:none;}
+  .toast{
+    position:fixed;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#111827;
+    color:#fff;
+    padding:12px 20px;
+    border-radius:8px;
+    font-size:14px;
+    display:none;
+    z-index:60;
+  }
+  .toast.error{background:var(--danger);}
+  .toast.success{background:var(--success);}
+
+  .admin-link{
+    display:block;
+    text-align:center;
+    margin-top:32px;
+    font-size:12px;
+    color:var(--gray);
+    text-decoration:underline;
+    cursor:pointer;
+  }
+  .admin-modal{
+    max-width:480px;
+  }
+  .admin-table-wrap{
+    max-height:60vh;
+    overflow-y:auto;
+    margin-top:12px;
+  }
+  table.admin-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  table.admin-table th, table.admin-table td{
+    text-align:left;
+    padding:8px 6px;
+    border-bottom:1px solid var(--border);
+  }
+  table.admin-table th{
+    color:var(--gray);
+    font-weight:600;
+    position:sticky;
+    top:0;
+    background:#fff;
+  }
+  .admin-empty{
+    color:var(--gray);
+    font-size:13px;
+    text-align:center;
+    padding:16px 0;
+  }
+  .admin-count{
+    font-size:13px;
+    color:var(--gray);
+    margin-top:4px;
+  }
+  .admin-delete-btn{
+    background:none;
+    border:1px solid var(--danger);
+    color:var(--danger);
+    border-radius:6px;
+    padding:4px 8px;
+    font-size:11px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .admin-delete-btn:hover{
+    background:var(--danger);
+    color:#fff;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Inscripción de Turnos</h1>
+  <div class="subtitle">Elige un horario disponible de 10:00 a.m. a 4:00 p.m. (turnos de 15 minutos)</div>
+  <div id="status-msg">Cargando turnos disponibles…</div>
+  <div class="slots-grid" id="slotsGrid"></div>
+  <div class="admin-link" id="adminLink">Panel de moderador</div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Confirmar inscripción</h2>
+    <div class="slot-label" id="modalSlotLabel"></div>
+    <div class="field">
+      <label for="nameInput">Nombre completo</label>
+      <input type="text" id="nameInput" placeholder="Ej. María Pérez">
+      <div class="field-error" id="nameError">Por favor ingresa tu nombre.</div>
+    </div>
+    <div class="field">
+      <label for="emailInput">Correo electrónico</label>
+      <input type="email" id="emailInput" placeholder="tucorreo@empresa.com">
+      <div class="field-error" id="emailError">Ingresa un correo válido.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="cancelBtn">Cancelar</button>
+      <button class="btn btn-primary" id="confirmBtn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Modal: pedir contraseña -->
+<div class="overlay" id="adminPasswordOverlay">
+  <div class="modal">
+    <h2>Panel de moderador</h2>
+    <div class="slot-label">Ingresa la contraseña para ver los inscritos.</div>
+    <div class="field">
+      <label for="adminPasswordInput">Contraseña</label>
+      <input type="password" id="adminPasswordInput" placeholder="••••••••">
+      <div class="field-error" id="adminPasswordError">Contraseña incorrecta.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="adminPasswordCancelBtn">Cancelar</button>
+      <button class="btn btn-primary" id="adminPasswordConfirmBtn">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: lista de inscritos -->
+<div class="overlay" id="adminPanelOverlay">
+  <div class="modal admin-modal">
+    <h2>Inscritos</h2>
+    <div class="admin-count" id="adminCount"></div>
+    <div class="admin-table-wrap">
+      <table class="admin-table" id="adminTable">
+        <thead>
+          <tr><th>Horario</th><th>Nombre</th><th>Correo</th><th></th></tr>
+        </thead>
+        <tbody id="adminTableBody"></tbody>
+      </table>
+      <div class="admin-empty" id="adminEmptyMsg" style="display:none;">Todavía no hay inscritos.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="adminCloseBtn">Cerrar</button>
+      <button class="btn btn-primary" id="adminExportBtn">Descargar CSV</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+
+// Config de Firebase (proyecto hr-team-51648, el mismo de TURNOS)
+const firebaseConfig = {
+  apiKey: "AIzaSyCW0abR0KUX9LYhNluxNJZPlBXEHMVnlqA",
+  authDomain: "hr-team-51648.firebaseapp.com",
+  databaseURL: "https://hr-team-51648-default-rtdb.firebaseio.com",
+  projectId: "hr-team-51648",
+  storageBucket: "hr-team-51648.firebasestorage.app",
+  messagingSenderId: "809856788088",
+  appId: "1:809856788088:web:98a697ba0504a53636ef8d"
+};
+
+// Nodo de la base de datos donde se guardan estos turnos.
+// Distinto al de tu formulario TURNOS vigente, así que no se mezclan.
+const DB_NODE = "turnos_15min";
+
+// Rango de horario y duración de cada turno (en minutos)
+const START_HOUR = 10;   // 10 = 10:00 a.m.
+const END_HOUR = 16;     // 16 = 4:00 p.m.
+const SLOT_MINUTES = 15;
+
+// Contraseña del panel de moderador (cámbiala si quieres una distinta
+// a la de tu formulario TURNOS actual)
+const ADMIN_PASSWORD = "admin2024";
+
+/* ============================================================
+   Lógica del formulario — no necesitas editar de aquí en adelante
+   ============================================================ */
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const slotsRef = db.ref(DB_NODE);
+
+const slotsGrid = document.getElementById("slotsGrid");
+const statusMsg = document.getElementById("status-msg");
+const overlay = document.getElementById("overlay");
+const modalSlotLabel = document.getElementById("modalSlotLabel");
+const nameInput = document.getElementById("nameInput");
+const emailInput = document.getElementById("emailInput");
+const nameError = document.getElementById("nameError");
+const emailError = document.getElementById("emailError");
+const cancelBtn = document.getElementById("cancelBtn");
+const confirmBtn = document.getElementById("confirmBtn");
+const toast = document.getElementById("toast");
+
+let selectedSlotKey = null;
+let selectedSlotLabel = null;
+
+function sanitizeKey(s){
+  return s.replace(/[^a-z0-9]/gi, "_");
+}
+
+function pad(n){ return n.toString().padStart(2, "0"); }
+
+function generateSlots(){
+  const slots = [];
+  let totalMinutes = START_HOUR * 60;
+  const endMinutes = END_HOUR * 60;
+  while (totalMinutes < endMinutes){
+    const startH = Math.floor(totalMinutes / 60);
+    const startM = totalMinutes % 60;
+    const endTotal = totalMinutes + SLOT_MINUTES;
+    const endH = Math.floor(endTotal / 60);
+    const endM = endTotal % 60;
+
+    const label = `${formatHour(startH, startM)} - ${formatHour(endH, endM)}`;
+    slots.push({ key: sanitizeKey(label), label });
+    totalMinutes = endTotal;
+  }
+  return slots;
+}
+
+function formatHour(h, m){
+  const period = h >= 12 ? "p.m." : "a.m.";
+  let displayH = h % 12;
+  if (displayH === 0) displayH = 12;
+  return `${displayH}:${pad(m)} ${period}`;
+}
+
+function showToast(message, type){
+  toast.textContent = message;
+  toast.className = "toast " + type;
+  toast.style.display = "block";
+  setTimeout(() => { toast.style.display = "none"; }, 3200);
+}
+
+function renderSlots(allSlots, takenData){
+  slotsGrid.innerHTML = "";
+  allSlots.forEach(slot => {
+    const taken = takenData && takenData[slot.key];
+    const btn = document.createElement("button");
+    btn.className = "slot-btn" + (taken ? " taken" : "");
+    btn.innerHTML = taken
+      ? `${slot.label}<span class="taken-name">Ocupado</span>`
+      : slot.label;
+    btn.disabled = !!taken;
+    if (!taken){
+      btn.addEventListener("click", () => openModal(slot.key, slot.label));
+    }
+    slotsGrid.appendChild(btn);
+  });
+  statusMsg.textContent = "Toca un horario disponible para inscribirte.";
+}
+
+function openModal(key, label){
+  selectedSlotKey = key;
+  selectedSlotLabel = label;
+  modalSlotLabel.textContent = `Horario seleccionado: ${label}`;
+  nameInput.value = "";
+  emailInput.value = "";
+  nameError.style.display = "none";
+  emailError.style.display = "none";
+  overlay.classList.add("active");
+}
+
+function closeModal(){
+  overlay.classList.remove("active");
+  selectedSlotKey = null;
+  selectedSlotLabel = null;
+}
+
+cancelBtn.addEventListener("click", closeModal);
+overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+
+function isValidEmail(email){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+confirmBtn.addEventListener("click", () => {
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+  let valid = true;
+
+  if (!name){
+    nameError.style.display = "block";
+    valid = false;
+  } else {
+    nameError.style.display = "none";
+  }
+
+  if (!isValidEmail(email)){
+    emailError.style.display = "block";
+    valid = false;
+  } else {
+    emailError.style.display = "none";
+  }
+
+  if (!valid || !selectedSlotKey) return;
+
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = "Guardando…";
+
+  const slotRef = slotsRef.child(selectedSlotKey);
+  slotRef.transaction(currentData => {
+    if (currentData === null){
+      return {
+        label: selectedSlotLabel,
+        name: name,
+        email: email,
+        timestamp: Date.now()
+      };
+    }
+    return undefined;
+  }, (error, committed) => {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = "Confirmar";
+    if (error){
+      showToast("Ocurrió un error. Intenta de nuevo.", "error");
+      return;
+    }
+    if (!committed){
+      showToast("Ese turno ya fue tomado por otra persona. Elige otro.", "error");
+      closeModal();
+      return;
+    }
+    showToast(`¡Listo! Quedaste inscrito en ${selectedSlotLabel}.`, "success");
+    closeModal();
+  });
+});
+
+let latestTakenData = {};
+
+const allSlots = generateSlots();
+slotsRef.on("value", snapshot => {
+  latestTakenData = snapshot.val() || {};
+  renderSlots(allSlots, latestTakenData);
+  if (adminPanelOverlay.classList.contains("active")){
+    renderAdminTable();
+  }
+}, error => {
+  statusMsg.textContent = "No se pudo conectar con la base de datos. Revisa la configuración de Firebase.";
+  console.error(error);
+});
+
+/* ============================================================
+   Panel de moderador
+   ============================================================ */
+
+const adminLink = document.getElementById("adminLink");
+const adminPasswordOverlay = document.getElementById("adminPasswordOverlay");
+const adminPasswordInput = document.getElementById("adminPasswordInput");
+const adminPasswordError = document.getElementById("adminPasswordError");
+const adminPasswordCancelBtn = document.getElementById("adminPasswordCancelBtn");
+const adminPasswordConfirmBtn = document.getElementById("adminPasswordConfirmBtn");
+const adminPanelOverlay = document.getElementById("adminPanelOverlay");
+const adminTableBody = document.getElementById("adminTableBody");
+const adminEmptyMsg = document.getElementById("adminEmptyMsg");
+const adminCount = document.getElementById("adminCount");
+const adminCloseBtn = document.getElementById("adminCloseBtn");
+const adminExportBtn = document.getElementById("adminExportBtn");
+
+adminLink.addEventListener("click", () => {
+  adminPasswordInput.value = "";
+  adminPasswordError.style.display = "none";
+  adminPasswordOverlay.classList.add("active");
+  adminPasswordInput.focus();
+});
+
+adminPasswordCancelBtn.addEventListener("click", () => {
+  adminPasswordOverlay.classList.remove("active");
+});
+adminPasswordOverlay.addEventListener("click", (e) => {
+  if (e.target === adminPasswordOverlay) adminPasswordOverlay.classList.remove("active");
+});
+
+function tryAdminLogin(){
+  if (adminPasswordInput.value === ADMIN_PASSWORD){
+    adminPasswordOverlay.classList.remove("active");
+    adminPanelOverlay.classList.add("active");
+    renderAdminTable();
+  } else {
+    adminPasswordError.style.display = "block";
+  }
+}
+adminPasswordConfirmBtn.addEventListener("click", tryAdminLogin);
+adminPasswordInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") tryAdminLogin();
+});
+
+adminCloseBtn.addEventListener("click", () => {
+  adminPanelOverlay.classList.remove("active");
+});
+adminPanelOverlay.addEventListener("click", (e) => {
+  if (e.target === adminPanelOverlay) adminPanelOverlay.classList.remove("active");
+});
+
+function getSortedEntries(){
+  return Object.values(latestTakenData || {})
+    .filter(entry => entry && entry.name)
+    .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+}
+
+function renderAdminTable(){
+  const entries = Object.entries(latestTakenData || {})
+    .filter(([key, entry]) => entry && entry.name)
+    .sort((a, b) => (a[1].label || "").localeCompare(b[1].label || ""));
+
+  adminTableBody.innerHTML = "";
+  if (entries.length === 0){
+    adminEmptyMsg.style.display = "block";
+  } else {
+    adminEmptyMsg.style.display = "none";
+    entries.forEach(([key, entry]) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${escapeHtml(entry.label || "")}</td><td>${escapeHtml(entry.name || "")}</td><td>${escapeHtml(entry.email || "")}</td><td></td>`;
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "admin-delete-btn";
+      deleteBtn.textContent = "Eliminar";
+      deleteBtn.addEventListener("click", () => deleteRegistration(key, entry.label, entry.name));
+      tr.lastElementChild.appendChild(deleteBtn);
+      adminTableBody.appendChild(tr);
+    });
+  }
+  adminCount.textContent = `${entries.length} de ${allSlots.length} turnos ocupados`;
+}
+
+function escapeHtml(str){
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function deleteRegistration(key, label, name){
+  const confirmed = confirm(`¿Eliminar la inscripción de ${name} en el turno ${label}? Ese horario quedará disponible de nuevo.`);
+  if (!confirmed) return;
+  slotsRef.child(key).remove()
+    .then(() => showToast("Inscripción eliminada. El turno quedó libre otra vez.", "success"))
+    .catch(() => showToast("No se pudo eliminar. Intenta de nuevo.", "error"));
+}
+
+adminExportBtn.addEventListener("click", () => {
+  const entries = Object.values(latestTakenData || {})
+    .filter(entry => entry && entry.name)
+    .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+  let csv = "Horario,Nombre,Correo\n";
+  entries.forEach(entry => {
+    const row = [entry.label, entry.name, entry.email]
+      .map(v => `"${(v || "").replace(/"/g, '""')}"`)
+      .join(",");
+    csv += row + "\n";
+  });
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "inscritos_turnos.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
